@@ -8,6 +8,7 @@ import './css/common.scss';
 import './css/reset.scss';
 import App from './App';
 import router from './router';
+import store from './store/store';
 import axios from './config/axios.config';
 
 Vue.config.productionTip = false;
@@ -18,6 +19,7 @@ new Vue({
   el: '#app',
   router,
   axios,
+  store,
   components: { App },
   template: '<App/>'
 });

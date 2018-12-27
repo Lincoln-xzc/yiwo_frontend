@@ -1,5 +1,9 @@
 import Vue from 'vue';
 import Router from 'vue-router';
+import { CURRENTUSER, TOKEN } from '../store/types';
+import store from '@/store/store';
+import {GetUserInfo} from '@/services/getData';
+import {MessageBox} from 'element-ui';
 
 Vue.use(Router);
 
@@ -14,116 +18,68 @@ const router = new Router({
       path: '/',
       name: 'index',
       component: loadView("Index"),
+      redirect: "/user",
       children:[
         {
-          path: 'home',
-          name: 'home',
-          component: loadView('home/Home')
-        },
-        /** 
-         * 教学模式
-        */
-        {
-          path: 'mode',
-          name: 'mode',
-          component: loadView("teach/TeachMode")
-        },
-        /** 
-         * 学生成果
-        */
-        {
-          path: 'achievement',
-          name: 'achievement',
-          component: loadView("student/Achievement")
-        },
-        /** 
-         * arduino 创作
-        */
-        {
-          path: 'arduino',
-          name: 'arduino',
-          component: loadView("create/Arduino")
-        },
-        /** 
-         * mc 创作
-        */
-        {
-          path: 'create/mc',
-          name: 'createMc',
-          component: loadView("create/MC")
-        },
-        /** 
-         * oj 创作
-        */
-        {
-          path: 'oj',
-          name: 'oj',
-          component: loadView("create/OJ")
-        },
-        /** 
-         * picoboard 创作
-        */
-        {
-          path: 'picoboard',
-          name: 'picoboard',
-          component: loadView("create/Picoboard")
-        },
-        /** 
-         * python 创作
-        */
-        {
-          path: 'python',
-          name: 'python',
-          component: loadView("create/Python")
-        },
-        /** 
-         * scratch 创作
-        */
-        {
-          path: 'scratch',
-          name: 'scratch',
-          component: loadView("create/Scratch")
-        },
-        /** 
-         * 社群活动
-        */
-        {
-          path: 'communityActivity',
-          name: 'communityActivity',
-          component: loadView("community/CommunityActivity")
-        },
-        /** 
-         * 资讯中心
-        */
-        {
-          path: 'informationCentre',
-          name: 'informationCentre',
-          component: loadView("community/InformationCentre")
-        },
-        /** 
-         * mc 社区
-        */
-        {
-          path: 'community/Mc',
-          name: 'mc',
-          component: loadView("community/Mc")
-        },
-        {
-          path: 'about',
-          name: 'about',
-          component: loadView("about/about")
+          path: 'user',
+          name: 'user',
+          component: loadView('User/List'),
+          meta:{
+            requiresAuth: true
+          }
         }
       ]
+    },
+    {
+      path: '/login',
+      name: 'login',
+      component: loadView("Login")
+    },
+    {
+      path: '/register',
+      name: 'register',
+      component: loadView('Register')
     }
   ]
 });
 
+const token = localStorage.getItem("token");
+const currentUser = localStorage.getItem("currentUser"); 
+if(token){
+  store.commit(TOKEN, token);
+}
+
+if(currentUser){
+  store.commit(CURRENTUSER, JSON.parse(currentUser));
+}
+
+
 router.beforeEach((to, from, next) => {
-  if (to.matched.length === 0) {
-    from.name ? next({name: from.name}) : next('/');
-  } else {
+  console.log(to);
+  if(to.matched.some(r=>r.meta.requiresAuth)){
+    if(store.state.currentUser && store.state.currentUser.id){
+      next();
+    }else{
+      GetUserInfo().then((response)=>{
+          let userInfo = response.data;
+          store.commit(CURRENTUSER, userInfo);
+          localStorage.setItem('currentUser', JSON.stringify(userInfo));
+      }).catch((error)=>{
+          MessageBox.alert('授权码过期，请重新登录', '未授权', {
+              confirmButtonClass: '登录',
+              callback: action => {
+                  localStorage.clear();
+                  next({
+                    path: "/login"
+                  });
+              }
+          });
+      });
+    }
+  }else{
     next();
   }
+  next();
   //进行权限的一些判断
 });
 

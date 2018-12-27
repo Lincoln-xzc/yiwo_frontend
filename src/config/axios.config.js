@@ -1,13 +1,18 @@
 import axios from 'axios';
 import {MessageBox, Message} from 'element-ui';
+import store from '../store/store';
 axios.defaults.timeout = 30000;
-axios.defaults.withCredentials = true; // 跨域默认不带cookie
-axios.defaults.baseUrl = process.env.PROTOCOL + "://" + process.env.API_HOST;
+axios.defaults.withCredentials = false; // 跨域默认不带cookie
+axios.defaults.baseUrl = process.env.PROTOCOL + "://" + process.env.API_HOST + '/api';
 axios.interceptors.request.use(
 	config => {
 	    if(!(config.url.indexOf("http")>-1 || config.url.indexOf("https")>-1)){
             config.url = config.baseUrl + config.url;
-        }
+		}
+		var token = store.state.token;
+	    if (token) {
+			config.headers.Authorization = 'Bearer ' + token;
+		}
 		return config;
 	}, err => {
 		return Promise.reject(err);
@@ -24,6 +29,7 @@ axios.interceptors.response.use(
         }
 	},
 	error => {
+		console.log(error);
 		if (error.response) {
 			switch (error.response.status) {
 				case 400:
@@ -33,9 +39,7 @@ axios.interceptors.response.use(
                         confirmButtonClass:'登录',
                         callback:action => {
                             localStorage.clear();
-                            let url = location.href;
-                            let res = encodeURI(url);
-                            window.location.href = error.response.data.data.redirect_url+'?redirect_uri='+res;
+                            this.$router.push('/login');
                         }
                     });
 					break;
